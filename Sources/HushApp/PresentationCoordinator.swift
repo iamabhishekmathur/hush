@@ -67,19 +67,20 @@ final class PresentationCoordinator {
 
     private func beginCountdown(_ seconds: Int) {
         state = .countdown
-        var remaining = seconds
-        guard remaining > 0 else { beginPresenting(); return }
-        model.countdown = remaining
+        guard seconds > 0 else { beginPresenting(); return }
+        model.countdown = seconds
+        // Timer blocks fire on the main run loop, so we are already on the main
+        // actor — assumeIsolated avoids a task hop and the Sendable-capture trap.
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
-            Task { @MainActor in
-                guard let self else { return }
-                remaining -= 1
-                if remaining <= 0 {
+            MainActor.assumeIsolated {
+                guard let self else { timer.invalidate(); return }
+                let next = (self.model.countdown ?? 1) - 1
+                if next <= 0 {
                     timer.invalidate()
                     self.model.countdown = nil
                     self.beginPresenting()
                 } else {
-                    self.model.countdown = remaining
+                    self.model.countdown = next
                 }
             }
         }
@@ -88,7 +89,7 @@ final class PresentationCoordinator {
     private func beginPresenting() {
         state = .presenting
         ticker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tick() }
+            MainActor.assumeIsolated { self?.tick() }
         }
     }
 
