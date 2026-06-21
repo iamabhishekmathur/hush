@@ -1,33 +1,32 @@
 import SwiftUI
 
-/// Minimal teleprompter rendering for M0: the script over a translucent panel,
-/// vertically offset by the scroll position, with a volume beam and a faint
-/// reading-line indicator. Per-word highlighting and live editing come in M1.
+/// The teleprompter overlay: script over a translucent panel, scrolled by the
+/// model's `scrollY`, with a reading-line indicator, a volume beam, and the
+/// pre-roll countdown. Per-word highlighting comes in a later milestone.
 struct PrompterView: View {
-    let scriptText: String
-    var scrollY: CGFloat          // in points; driven by ScrollSyncEngine
-    var beamLevel: Double         // 0...1 from VADEngine
-    var fontSize: CGFloat = 28
+    @ObservedObject var model: PrompterModel
+
+    private let readingLineY: CGFloat = 46
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color.black.opacity(0.55))
 
-            Text(scriptText)
-                .font(.system(size: fontSize, weight: .semibold, design: .rounded))
+            Text(model.scriptText)
+                .font(.system(size: model.fontSize, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 24)
-                .offset(y: 44 - scrollY)
+                .offset(y: readingLineY + 4 - model.scrollY)
 
             // reading-line indicator
             VStack(spacing: 0) {
                 Rectangle()
                     .fill(Color.white.opacity(0.12))
                     .frame(height: 1)
-                    .padding(.top, 40)
+                    .padding(.top, readingLineY)
                 Spacer()
             }
 
@@ -35,11 +34,20 @@ struct PrompterView: View {
             VStack {
                 Spacer()
                 Capsule()
-                    .fill(Color.white.opacity(0.8))
-                    .frame(width: max(8, 140 * beamLevel), height: 3)
+                    .fill(Color.white.opacity(0.85))
+                    .frame(width: max(8, 160 * model.beamLevel), height: 3)
                     .padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity)
+
+            // pre-roll countdown
+            if let count = model.countdown {
+                Text("\(count)")
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.35))
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }

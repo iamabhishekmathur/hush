@@ -1,24 +1,27 @@
 import AppKit
 import SwiftUI
 
-/// Owns the GhostPanel and positions it at camera level. Hosts the SwiftUI
-/// PrompterView. M0 wires display/placement/Ghost Mode; the audio→sync→scroll
-/// pipeline (HushCore) lands in M1.
+/// Owns the GhostPanel, positions it at camera level, and hosts the PrompterView
+/// bound to a shared PrompterModel that the coordinator drives.
 @MainActor
 final class OverlayWindowController {
-    private let panel: GhostPanel
-    private let size: CGSize
+    let model = PrompterModel()
 
-    init(size: CGSize = CGSize(width: 560, height: 130)) {
-        self.size = size
-        let screen = ScreenGeometry.targetScreen() ?? NSScreen.main!
-        let frame = ScreenGeometry.overlayFrame(on: screen, size: size)
-        panel = GhostPanel(contentRect: frame)
+    private let panel: GhostPanel
+    private let size = CGSize(width: 600, height: 150)
+
+    init() {
+        let rect: CGRect
+        if let screen = ScreenGeometry.targetScreen() {
+            rect = ScreenGeometry.overlayFrame(on: screen, size: size)
+        } else {
+            rect = CGRect(x: 200, y: 200, width: size.width, height: size.height)
+        }
+        panel = GhostPanel(contentRect: rect)
+        panel.contentView = NSHostingView(rootView: PrompterView(model: model))
     }
 
-    func show(scriptText: String) {
-        let host = NSHostingView(rootView: PrompterView(scriptText: scriptText, scrollY: 0, beamLevel: 0))
-        panel.contentView = host
+    func show() {
         reposition()
         panel.orderFrontRegardless()
     }

@@ -163,4 +163,34 @@ h.suite("ScrollSync · manual override re-anchors") {
     h.equal(e.mode, .manual, "mode is manual")
 }
 
+// MARK: SpringScroller
+
+h.suite("SpringScroller · converges without overshoot") {
+    var spring = SpringScroller(position: 0, omega: 14)
+    var maxPos = 0.0
+    for _ in 0..<120 { spring.step(to: 100, dt: 1.0 / 60.0); maxPos = max(maxPos, spring.position) }
+    h.approx(spring.position, 100, 0.5, "settles at target")
+    h.le(maxPos, 100.0001, "never overshoots the target (critically damped)")
+}
+
+h.suite("SpringScroller · settles quickly") {
+    var spring = SpringScroller(position: 0, omega: 14)
+    for _ in 0..<18 { spring.step(to: 100, dt: 1.0 / 60.0) }   // ~0.3 s
+    h.gt(spring.position, 90, "within 10% of target after ~300 ms")
+}
+
+h.suite("SpringScroller · stable at large dt") {
+    var spring = SpringScroller(position: 0, omega: 14)
+    let p = spring.step(to: 100, dt: 1.0)                       // a 1-second frame gap
+    h.check(p.isFinite, "does not blow up on a large dt")
+    h.le(p, 100.0001, "still no overshoot at large dt")
+}
+
+h.suite("SpringScroller · snap is instant") {
+    var spring = SpringScroller(position: 0, velocity: 50)
+    spring.snap(to: 42)
+    h.equal(spring.position, 42, "snaps to value")
+    h.equal(spring.velocity, 0, "clears velocity")
+}
+
 exit(Int32(h.summarize()))
