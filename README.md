@@ -4,7 +4,7 @@
 
 Hush puts your script right at the camera so you keep eye contact, scrolls it **as you speak** (and waits when you pause), and stays **invisible during screen sharing** — Zoom, Teams, Meet, Loom, OBS, and even screenshots never see it.
 
-> Status: **early (M0)**. The core voice-sync engine is implemented and tested; the macOS app shell (Ghost Mode overlay + notch placement) compiles. The live audio→speech→scroll wiring and the script library/editor land in upcoming milestones. See the [roadmap](#roadmap).
+> Status: **early (M0–M1)**. The core voice-sync engine is implemented and tested (52 self-test checks). The macOS app — Ghost Mode overlay, notch placement, live mic→on-device-speech→spring-eased scroll pipeline, 3-2-1 countdown, and a script library/editor — is implemented and compiles; on-device tuning of the scroll feel is the next pass. See the [roadmap](#roadmap).
 
 ---
 
@@ -53,9 +53,9 @@ cd app && xcodegen generate && open Hush.xcodeproj
 
 | Milestone | Scope |
 |-----------|-------|
-| **M0** | Overlay panel + Ghost Mode + notch placement · pure `ScrollSyncEngine` + replay tests ✅ in progress |
-| M1 | Live `AVAudioEngine` + `SFSpeechRecognizer` sources · script library + editor · countdown |
-| M2 | Calibration onboarding · VAD creep + volume beam · settings |
+| **M0** ✅ | Overlay panel + Ghost Mode + notch placement · pure `ScrollSyncEngine` + replay tests |
+| **M1** ✅ | Live `AVAudioEngine` + on-device `SFSpeechRecognizer` (`LiveMic`) · `PresentationCoordinator` (VAD + sync + `SpringScroller`) · countdown · script library + editor |
+| M2 | On-device scroll-feel tuning (TextKit per-token offsets) · calibration onboarding · settings |
 | M3 | Global hotkeys · manual override polish · accessibility pass |
 | M4 | Permissions/error flows · multi-monitor · perf hardening |
 | M5 | Signing/notarization · onboarding polish · release |
