@@ -9,12 +9,15 @@ public enum ScrollMode: String, Sendable {
 }
 
 /// An original whitespace token of the script (surface form + layout position).
+/// `utf16Range` is the token's span in the source string in UTF-16 code units,
+/// so the app can map tokens to TextKit glyph rects for precise scroll offsets.
 public struct Token: Equatable, Sendable {
     public let raw: String
     public let index: Int
     public var yOffset: Double
-    public init(raw: String, index: Int, yOffset: Double) {
-        self.raw = raw; self.index = index; self.yOffset = yOffset
+    public let utf16Range: Range<Int>
+    public init(raw: String, index: Int, yOffset: Double, utf16Range: Range<Int>) {
+        self.raw = raw; self.index = index; self.yOffset = yOffset; self.utf16Range = utf16Range
     }
 }
 

@@ -12,7 +12,7 @@ public final class ScrollSyncEngine {
 
     public var config: SyncConfig
     public var creepVelocity: Double = 0      // yOffset units / second (from calibration)
-    public let readingLineOffset: Double
+    public var readingLineOffset: Double
 
     private var pendingBackward = 0
 
@@ -90,6 +90,10 @@ public final class ScrollSyncEngine {
             break
         }
     }
+
+    /// Put the engine into steady auto-scroll (used when voice-sync is off): a
+    /// subsequent `tick(dt:isSpeaking:true)` advances at `creepVelocity`.
+    public func beginAutoScroll() { mode = .vadCreep }
 
     /// User scrubbed manually; re-anchor to the nearest word at/after a token.
     public func manualScroll(toTokenIndex tokenIndex: Int) {

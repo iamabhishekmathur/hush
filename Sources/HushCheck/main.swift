@@ -193,4 +193,48 @@ h.suite("SpringScroller · snap is instant") {
     h.equal(spring.velocity, 0, "clears velocity")
 }
 
+// MARK: Tokenizer utf16 ranges (TextKit mapping)
+
+h.suite("Tokenizer · utf16 ranges") {
+    let (tokens, _) = Tokenizer().tokenize("Hi there")
+    h.equal(tokens[0].utf16Range, 0 ..< 2, "first token range")
+    h.equal(tokens[1].utf16Range, 3 ..< 8, "second token range")
+
+    let source = "Our API costs $29"
+    let units = Array(source.utf16)
+    let (toks, _) = Tokenizer().tokenize(source)
+    let surfaces = toks.map { t -> String in
+        let slice = Array(units[t.utf16Range])
+        return String(utf16CodeUnits: slice, count: slice.count)
+    }
+    h.equal(surfaces, ["Our", "API", "costs", "$29"], "ranges slice back to the surface tokens")
+}
+
+// MARK: auto-scroll (voice-sync off)
+
+h.suite("ScrollSync · auto-scroll without ASR") {
+    let e = loaded(Fixtures.s1Sales)
+    e.creepVelocity = 10
+    e.beginAutoScroll()
+    let before = e.scrollTargetY
+    e.tick(dt: 0.5, isSpeaking: true)
+    h.gt(e.scrollTargetY, before, "auto-scroll advances at creep velocity")
+}
+
+// MARK: Calibration
+
+h.suite("Calibration · profile") {
+    let p = Calibration.makeProfile(noiseSamplesDb: [-52, -50, -54],
+                                    speechSamplesDb: [-18, -16, -20],
+                                    spokenWords: 40, elapsedSeconds: 16)
+    h.approx(p.wordsPerMinute, 150, 1, "wpm from words/elapsed")
+    h.check(p.vadThreshold > p.noiseFloorDb && p.vadThreshold < p.speakingDb,
+            "vad threshold sits between noise floor and speech")
+    h.gt(p.creepVelocity, 0, "creep velocity derived from wpm")
+
+    let fallback = Calibration.makeProfile(noiseSamplesDb: [], speechSamplesDb: [],
+                                           spokenWords: 0, elapsedSeconds: 0)
+    h.approx(fallback.wordsPerMinute, 150, 0.001, "falls back to 150 wpm when unmeasured")
+}
+
 exit(Int32(h.summarize()))

@@ -8,7 +8,7 @@ final class OverlayWindowController {
     let model = PrompterModel()
 
     private let panel: GhostPanel
-    private let size = CGSize(width: 600, height: 150)
+    private let size = OverlayLayout.panelSize
 
     init() {
         let rect: CGRect

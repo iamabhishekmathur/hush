@@ -18,36 +18,54 @@ final class PresentationCoordinator {
     private var ticker: Timer?
     private var countdownTimer: Timer?
     private var lastBufferMs: Int?
-
-    /// Token-unit (≈ word) → point conversion for the scroll target.
-    /// TODO(M2): replace the linear estimate with TextKit per-token measurement.
-    private var pointsPerToken: CGFloat = 16
+    private var voiceSyncEnabled = true
 
     init(model: PrompterModel) { self.model = model }
 
     // MARK: lifecycle
 
-    func start(script: String, countdownSeconds: Int = 3) {
-        let (_, words) = Tokenizer().tokenize(script)
+    func start(script: String) {
+        let d = UserDefaults.standard
+        let fontSize = (d.object(forKey: SettingsKey.fontSize) as? Double) ?? 30
+        let countdown = (d.object(forKey: SettingsKey.countdown) as? Int) ?? 3
+        voiceSyncEnabled = (d.object(forKey: SettingsKey.voiceSync) as? Bool) ?? true
+        let sensitivity = (d.object(forKey: SettingsKey.micSensitivity) as? Double) ?? 0
+
+        model.fontSize = CGFloat(fontSize)
+
+        // Measure real per-token scroll offsets at the exact render font/width.
+        let font = ScriptLayout.prompterFont(size: CGFloat(fontSize))
+        let (words, pointsPerWord) = ScriptLayout.measuredWords(
+            text: script, font: font, width: OverlayLayout.textWidth)
         sync.load(words: words)
-        sync.creepVelocity = 2.5            // ~150 wpm fallback when ASR has no match
+        sync.readingLineOffset = OverlayLayout.readingLineY
+
+        let profile = CalibrationStore.load()
+        let wpm = profile?.wordsPerMinute ?? 150
+        sync.creepVelocity = wpm / 60.0 * pointsPerWord          // points/second
+        vad.threshold = (profile?.vadThreshold ?? -35) - sensitivity
+
         spring.snap(to: 0)
         lastBufferMs = nil
         model.scriptText = script
         model.scrollY = 0
         model.beamLevel = 0
 
-        let mic = LiveMic()
-        mic.onBuffer = { [weak self] db, ms in
-            Task { @MainActor in self?.handleBuffer(db: db, ms: ms) }
+        if voiceSyncEnabled {
+            let mic = LiveMic()
+            mic.onBuffer = { [weak self] db, ms in
+                Task { @MainActor in self?.handleBuffer(db: db, ms: ms) }
+            }
+            mic.onResult = { [weak self] result in
+                Task { @MainActor in self?.handleResult(result) }
+            }
+            self.mic = mic
+            try? mic.start()
+        } else {
+            sync.beginAutoScroll()                               // steady auto-scroll
         }
-        mic.onResult = { [weak self] result in
-            Task { @MainActor in self?.handleResult(result) }
-        }
-        self.mic = mic
-        try? mic.start()
 
-        beginCountdown(countdownSeconds)
+        beginCountdown(countdown)
     }
 
     func pause() { if state == .presenting { state = .paused } }
@@ -109,9 +127,9 @@ final class PresentationCoordinator {
 
     private func tick() {
         guard state == .presenting else { return }
-        sync.tick(dt: 1.0 / 60.0, isSpeaking: vad.isSpeaking)
-        let target = Double(CGFloat(sync.scrollTargetY) * pointsPerToken)
-        spring.step(to: target, dt: 1.0 / 60.0)
+        // scrollTargetY is already in points (measured layout); spring eases to it.
+        sync.tick(dt: 1.0 / 60.0, isSpeaking: voiceSyncEnabled ? vad.isSpeaking : true)
+        spring.step(to: sync.scrollTargetY, dt: 1.0 / 60.0)
         model.scrollY = CGFloat(spring.position)
     }
 }

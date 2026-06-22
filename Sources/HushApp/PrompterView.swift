@@ -6,7 +6,7 @@ import SwiftUI
 struct PrompterView: View {
     @ObservedObject var model: PrompterModel
 
-    private let readingLineY: CGFloat = 46
+    private let readingLineY = CGFloat(OverlayLayout.readingLineY)
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -18,7 +18,7 @@ struct PrompterView: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, OverlayLayout.textHorizontalPadding)
                 .offset(y: readingLineY + 4 - model.scrollY)
 
             // reading-line indicator

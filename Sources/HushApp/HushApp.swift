@@ -18,6 +18,15 @@ struct HushApp: App {
                 .frame(minWidth: 680, minHeight: 440)
         }
         .windowResizability(.contentMinSize)
+
+        Window("Calibrate Voice", id: "calibration") {
+            CalibrationView()
+        }
+        .windowResizability(.contentSize)
+
+        Settings {
+            SettingsView()
+        }
     }
 
     static let sampleScript = """
@@ -48,6 +57,8 @@ private struct MenuContent: View {
 
         Divider()
         Button("Edit Scripts…") { openWindow(id: "editor") }
+        Button("Calibrate Voice…") { openWindow(id: "calibration") }
+        SettingsLink { Text("Settings…") }
 
         Divider()
         Button("Quit Hush") { NSApplication.shared.terminate(nil) }

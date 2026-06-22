@@ -15,25 +15,50 @@ public struct Tokenizer {
         "i'm","let's","when","while","uh","um","like",
     ]
 
-    /// In the test/headless layout each token is one scroll unit tall, so a
-    /// token's `yOffset` equals its index — that makes "within ±N tokens"
-    /// assertions in the test plan exact. The real app overwrites yOffset from
-    /// the rendered text layout.
+    /// Splits on whitespace while recording each token's UTF-16 range in the
+    /// source string. In this headless layout each token is one scroll unit
+    /// tall (yOffset == index), making "within ±N tokens" assertions exact; the
+    /// app overwrites yOffset with measured point offsets from TextKit.
     public func tokenize(_ script: String) -> (tokens: [Token], words: [ScriptWord]) {
-        let raw = script.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" || $0 == "\r" })
-                        .map(String.init)
         var tokens: [Token] = []
         var words: [ScriptWord] = []
-        for (i, surface) in raw.enumerated() {
+
+        var index = 0
+        var u16 = 0           // running UTF-16 offset in the source
+        var tokenStart = 0
+        var current = ""
+
+        func isWhitespace(_ s: Unicode.Scalar) -> Bool {
+            s == " " || s == "\n" || s == "\t" || s == "\r"
+        }
+
+        func flush() {
+            guard !current.isEmpty else { return }
+            let i = index
             let yOffset = Double(i)
-            tokens.append(Token(raw: surface, index: i, yOffset: yOffset))
-            let expanded = Normalizer.expand(surface)
+            tokens.append(Token(raw: current, index: i, yOffset: yOffset, utf16Range: tokenStart ..< u16))
+            let expanded = Normalizer.expand(current)
             let primary = expanded.first ?? ""
             let distinctive = !stopwords.contains(primary) && isContent(expanded)
             for w in expanded where !w.isEmpty {
                 words.append(ScriptWord(text: w, tokenIndex: i, yOffset: yOffset, isDistinctive: distinctive))
             }
+            index += 1
+            current = ""
         }
+
+        for scalar in script.unicodeScalars {
+            let width = scalar.utf16.count
+            if isWhitespace(scalar) {
+                flush()
+            } else {
+                if current.isEmpty { tokenStart = u16 }
+                current.unicodeScalars.append(scalar)
+            }
+            u16 += width
+        }
+        flush()
+
         return (tokens, words)
     }
 
