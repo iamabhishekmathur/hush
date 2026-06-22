@@ -4,7 +4,7 @@
 
 Hush puts your script right at the camera so you keep eye contact, scrolls it **as you speak** (and waits when you pause), and stays **invisible during screen sharing** — Zoom, Teams, Meet, Loom, OBS, and even screenshots never see it.
 
-> Status: **early (M0–M1)**. The core voice-sync engine is implemented and tested (52 self-test checks). The macOS app — Ghost Mode overlay, notch placement, live mic→on-device-speech→spring-eased scroll pipeline, 3-2-1 countdown, and a script library/editor — is implemented and compiles; on-device tuning of the scroll feel is the next pass. See the [roadmap](#roadmap).
+> Status: **early (M0–M2)**. The core voice-sync engine is implemented and tested (60 self-test checks). The macOS app — Ghost Mode overlay, notch placement, live mic→on-device-speech→spring-eased scroll with TextKit-measured per-token offsets, 3-2-1 countdown, script library/editor, calibration onboarding, and a settings window — is implemented and compiles (CI-gated). On-device runtime validation (real capture tools, TCC prompts, scroll feel) is the next pass. See the [roadmap](#roadmap).
 
 ---
 
@@ -55,8 +55,8 @@ cd app && xcodegen generate && open Hush.xcodeproj
 |-----------|-------|
 | **M0** ✅ | Overlay panel + Ghost Mode + notch placement · pure `ScrollSyncEngine` + replay tests |
 | **M1** ✅ | Live `AVAudioEngine` + on-device `SFSpeechRecognizer` (`LiveMic`) · `PresentationCoordinator` (VAD + sync + `SpringScroller`) · countdown · script library + editor |
-| M2 | On-device scroll-feel tuning (TextKit per-token offsets) · calibration onboarding · settings |
-| M3 | Global hotkeys · manual override polish · accessibility pass |
+| **M2** ✅ | TextKit per-token scroll offsets (`ScriptLayout`) · calibration onboarding · settings window · auto-scroll when voice-sync is off |
+| M3 | On-device validation pass · global hotkeys · manual override polish · accessibility |
 | M4 | Permissions/error flows · multi-monitor · perf hardening |
 | M5 | Signing/notarization · onboarding polish · release |
 
